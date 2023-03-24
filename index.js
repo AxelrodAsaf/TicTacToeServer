@@ -1,8 +1,9 @@
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
-const authController = require("./Controllers/authController");
-const controller = require("./Controllers/controller");
+// const authController = require("./Controllers/authController");
+const gameController = require("./Controllers/gameController");
+const moveController = require("./Controllers/moveController");
 const bodyParser = require("body-parser");
 const port = 8000;
 const cors = require('cors');
@@ -32,8 +33,9 @@ app.use(cors("*"));
 // app.use(authController.token);
 
 
-app.post("/createGame", controller.createGame);
-app.get("/getGame", controller.getGame);
+app.post("/createGame", gameController.createGame);
+app.post("/joinGame", gameController.joinGame);
+app.get("/getGame", gameController.getGame);
 
 
 
