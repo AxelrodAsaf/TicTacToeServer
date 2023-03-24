@@ -15,7 +15,7 @@ const gameSchema = new mongoose.Schema({
   gameboard: {
     type: Array,
     default:
-    [[],[],[]]
+      [["", "", ""], ["", "", ""], ["", "", ""]]
   },
   turn: {
     type: Boolean,
