@@ -102,6 +102,8 @@ io.on("connection", (socket) => {
       game.players.push(username);
       await game.save();
       console.log(`User ${username} joined game ${gameID}`);
+      socket.emit("player2Joined", "Yes");
+      socket.broadcast.emit("player2Joined", "Yes");
       socket.emit("joinGameSuccess", { message: `User ${username} joined game ${gameID} ` });
     }
     catch (err) {
@@ -217,12 +219,15 @@ io.on("connection", (socket) => {
         if (checkWin(`X`)) {
           console.log(`Player X wins!`);
           socket.emit(`gameOver`, { winner: `X` });
+          socket.broadcast.emit(`gameOver`, { winner: `X` });
         } else if (checkWin(`O`)) {
           console.log(`Player O wins!`);
           socket.emit(`gameOver`, { winner: `O` });
+          socket.broadcast.emit(`gameOver`, { winner: `O` });
         } else if (gameboard.every(row => row.every(cell => cell !== `#`))) {
           console.log(`Game is a tie!`);
           socket.emit(`gameOver`, { winner: `T` });
+          socket.broadcast.emit(`gameOver`, { winner: `T` });
         }
       }
 // =========================================================================================================================
