@@ -32,10 +32,13 @@ app.use(cors("*"));
 // Using app.use make sure that the token is valid for all requests
 // app.use(authController.token);
 
-
+// Game Controllers - this allows users to create, join, and view games
 app.post("/createGame", gameController.createGame);
 app.post("/joinGame", gameController.joinGame);
-app.get("/getGame", gameController.getGame);
+app.get(`/getGame/:gameID`, gameController.getGame);
+
+// Move Controllers - this allows users to make a move within a game
+app.post("/makeMove/:gameID", moveController.makeMove);
 
 
 
