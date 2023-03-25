@@ -3,6 +3,13 @@ const Game = require("../Models/Game");
 exports.createGame = async (req, res) => {
   const gameID = req.body.gameID;
   const username = req.body.username;
+  var player1Piece = gameID.match(/[XO].*/)[0].slice(0, 1);
+  console.log(player1Piece);
+  var player2Piece = "X";
+  if (player1Piece === "X") {
+    player2Piece = "O";
+    console.log(player2Piece);
+  }
 
   // Check the gameID if there isn't already a game with that ID
   const game = await Game.findOne({ gameID });
@@ -16,6 +23,8 @@ exports.createGame = async (req, res) => {
     const newGame = new Game({
       gameID: gameID,
       players: [username],
+      player1Piece: player1Piece,
+      player2Piece: player2Piece
     });
     console.log(`Saving new game with gameID: ${gameID} and player: ${username}`);
     await newGame.save();
@@ -65,7 +74,7 @@ exports.joinGame = async (req, res) => {
 }
 
 exports.getGame = async (req, res) => {
-  const gameID = req.body.gameID;
+  const gameID = req.params.gameID;
   try {
     // Find the game in the database
     const game = await Game.findOne({ gameID: gameID });
@@ -74,8 +83,8 @@ exports.getGame = async (req, res) => {
       return res.status(404).json({ message: `No game found: ${gameID}` });
     }
 
-    // Return the game's gameboard
-    return res.status(200).json(game.gameboard);
+    // Return the game's data
+    return res.status(200).json(game);
   }
   catch (err) {
     console.log(err);
