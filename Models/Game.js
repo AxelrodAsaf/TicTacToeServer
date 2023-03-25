@@ -15,11 +15,19 @@ const gameSchema = new mongoose.Schema({
   gameboard: {
     type: Array,
     default:
-      [["", "", ""], ["", "", ""], ["", "", ""]]
+      [["#", "#", "#"], ["#", "#", "#"], ["#", "#", "#"]]
+  },
+  player1Piece: {
+    type: String,
+    default: "X"
+  },
+  player2Piece: {
+    type: String,
+    default: "X"
   },
   turn: {
-    type: Boolean,
-    default: false
+    type: String,
+    default: "X"
   }
 }, { timestamps: true });
 
