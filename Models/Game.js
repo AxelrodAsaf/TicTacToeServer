@@ -27,7 +27,7 @@ const gameSchema = new mongoose.Schema({
   },
   turn: {
     type: String,
-    default: "X"
+    required: true,
   }
 }, { timestamps: true });
 

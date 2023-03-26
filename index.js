@@ -38,42 +38,48 @@ app.use(cors());
 
 // Game Controllers - this allows users to create, join, and view games
 io.on("connection", (socket) => {
-  console.log(`A user connected with ID: ${socket.id}`);
+  console.log(`A user connected with socket id: ${socket.id}`);
 
-  // Listen for "createGame" event
+  // Wait for host-client to call 'createGame'
   socket.on("createGame", async (data) => {
+    console.log(`A new game has been created with ID: ${data.gameID}`);
     const gameID = data.gameID;
     const username = data.username;
     const player1Piece = gameID.match(/[XO].*/)[0].slice(0, 1);
-    console.log(player1Piece);
     const player2Piece = player1Piece === "X" ? "O" : "X";
 
     // Check if there is already a game with the given ID
     const existingGame = await Game.findOne({ gameID });
     if (existingGame) {
-      console.log(`Game with gameID: ${gameID} already exists`);
-      socket.emit("createGameResponse", { error: `Game with gameID: ${gameID} already exists` });
-      return;
+      return socket.emit("createGameResponse", { error: `Game with gameID: ${gameID} already exists` });
     }
+
+    // Generate a random number either 0 or 1 to define first turn
+    const randomNumber = Math.floor(Math.random() * 2);
+    const turn = randomNumber === 0 ? "X" : "O";
 
     // Create a new game
     const newGame = new Game({
       gameID: gameID,
       players: [username],
       player1Piece: player1Piece,
-      player2Piece: player2Piece
+      player2Piece: player2Piece,
+      turn: turn,
     });
     try {
-      console.log(`Saving new game with gameID: ${gameID}`);
       await newGame.save();
-      socket.emit("createGameResponse", { message: "Game created successfully" });
+
+      // Create a new socket room for the game
+      socket.join(gameID);
+      console.log(`createGame: Player ${username} joined the room: ${gameID}`);
+
     } catch (err) {
       console.log(err);
-      socket.emit("createGameResponse", { error: err });
     }
   });
 
-  // Listen for "joinGame" event
+
+  // Wait for guest-client to call 'joinGame'
   socket.on("joinGame", async (data) => {
     // Define the username as in the request
     const username = data.username;
@@ -82,44 +88,50 @@ io.on("connection", (socket) => {
     try {
       const game = await Game.findOne({ gameID: gameID });
       if (!game) {
-        console.log(`No game found: ${gameID}`);
+        console.log(`joinGame: No game found: ${gameID}`);
         return socket.emit("joinGameError", { error: `No game found: ${gameID}` });
       }
 
       // Check if the user is already in the game
       if (game.players.includes(username)) {
-        console.log(`User ${username} is already in game ${gameID}`);
+        console.log(`joinGame: User ${username} already in game ${gameID}`);
         return socket.emit("joinGameError", { error: `User ${username} is already in game ${gameID}` });
       }
 
       // Check how many players are in the game
       if (game.players.length >= 2) {
-        console.log(`Game ${gameID} has ${game.players.length} players`);
+        console.log(`joinGame: Game full: ${gameID}`);
         return socket.emit("joinGameError", { error: `Game ${gameID} has ${game.players.length} players` });
       }
 
+      // Join the user to the room
+      socket.join(gameID);
+      console.log(`Player ${username} joined the room: ${gameID}`);
+
       // Add the user to the game
+      console.log(`joinGame: Adding user ${username} to game ${gameID}`);
       game.players.push(username);
       await game.save();
-      console.log(`User ${username} joined game ${gameID}`);
-      socket.emit("player2Joined", "Yes");
-      socket.broadcast.emit("player2Joined", "Yes");
-      socket.emit("joinGameSuccess", { message: `User ${username} joined game ${gameID} ` });
+
+      // Emit an event to players that the game has started
+      console.log("Emitting startGame event");
+      io.in(gameID).emit("startGame", { message: `Starting game ${gameID}` });
     }
     catch (err) {
       console.log(err);
-      socket.emit("joinGameError", { error: err });
+      io.in(gameID).emit("joinGameError", { error: err });
     }
   });
 
-  // Listen for "getGame" event
+
+  // Wait for either client to call 'getGame' to receive game data
   socket.on("getGame", async (data) => {
+    console.log(`A user requested data for the game with ID: ${data.gameID}`);
     const gameID = data.gameID;
     try {
       // Find the game in the database
       const game = await Game.findOne({ gameID: gameID });
       if (!game) {
-        console.log(`No game found: ${gameID}`);
         return socket.emit("getGameError", { error: `No game found: ${gameID}` });
       }
 
@@ -132,7 +144,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Listen for "makeMove" event
+  // Listen for a player to call "makeMove" event
   socket.on('makeMove', async (data) => {
     const gameID = data.gameID;
     const username = data.username;
@@ -144,34 +156,28 @@ io.on("connection", (socket) => {
       // Check if the game exists
       const game = await Game.findOne({ gameID });
       if (!game) {
-        console.log(`Game with gameID: ${gameID} does not exist`);
         return socket.emit('error', { message: `Game with gameID: ${gameID} does not exist` });
       }
 
       // Check if the player is in the game
       const playerList = game.players;
       if (!playerList.includes(username)) {
-        console.log(`Player ${username} is not in the player list of the game`);
         return socket.emit('error', { message: `Player ${username} is not in the player list of the game` });
       }
 
       // Check if it is the player's turn
       const playerTurn = game.turn;
       if (playerTurn !== playerPiece) {
-        console.log(`It is not ${playerPiece} to make a move`);
         return socket.emit('error', { message: `It is not ${playerPiece} to make a move` });
       }
 
       // Calculate the row and column of the cell
       const row = Math.floor(cell / 3);
-      console.log(`row: ${row}`);
       const col = cell % 3;
-      console.log(`col: ${col}`);
 
       // Check if the cell is empty
       const gameboard = game.gameboard;
       if (gameboard[row][col] !== "#") {
-        console.log(`Cell ${cell} is already occupied`);
         return socket.emit('error', { message: `Cell ${cell} is already occupied` });
       }
 
@@ -218,16 +224,13 @@ io.on("connection", (socket) => {
       function checkGameStatus() {
         if (checkWin(`X`)) {
           console.log(`Player X wins!`);
-          socket.emit(`gameOver`, { winner: `X` });
-          socket.broadcast.emit(`gameOver`, { winner: `X` });
+          io.in(gameID).emit(`gameOver`, { winner: `X` });
         } else if (checkWin(`O`)) {
           console.log(`Player O wins!`);
-          socket.emit(`gameOver`, { winner: `O` });
-          socket.broadcast.emit(`gameOver`, { winner: `O` });
+          io.in(gameID).emit(`gameOver`, { winner: `O` });
         } else if (gameboard.every(row => row.every(cell => cell !== `#`))) {
           console.log(`Game is a tie!`);
-          socket.emit(`gameOver`, { winner: `T` });
-          socket.broadcast.emit(`gameOver`, { winner: `T` });
+          io.in(gameID).emit(`gameOver`, { winner: `T` });
         }
       }
 // =========================================================================================================================
@@ -250,10 +253,10 @@ io.on("connection", (socket) => {
       // Update the game in the database
       await game.save();
       console.log(`Player ${playerPiece} made a move at cell ${cell}`);
-      io.emit('moveMade', { gameboard: gameboard });
+      io.in(gameID).emit('moveMade', { game: game, turn: game.turn });
     } catch (err) {
       console.log(err);
-      io.emit('error', { message: err });
+      socket.emit('error', { message: err });
     }
   });
 
