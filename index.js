@@ -43,7 +43,7 @@ io.on("connection", (socket) => {
   // Wait for host-client to call 'createGame'
   socket.on("createGame", async (data) => {
     console.log(`A new game has been created with ID: ${data.gameID}`);
-    const gameID = data.gameID;
+    const gameID = data.gameID.toLowerCase();
     const username = data.username;
     const player1Piece = data.player1Piece
     const player2Piece = player1Piece === "X" ? "O" : "X";
@@ -84,7 +84,7 @@ io.on("connection", (socket) => {
     // Define the username as in the request
     const username = data.username;
     // Use the gameID to find the game in the database
-    const gameID = data.gameID;
+    const gameID = data.gameID.toLowerCase();
     try {
       const game = await Game.findOne({ gameID: gameID });
       if (!game) {
@@ -127,7 +127,7 @@ io.on("connection", (socket) => {
   // Wait for either client to call 'getGame' to receive game data
   socket.on("getGame", async (data) => {
     console.log(`A user requested data for the game with ID: ${data.gameID}`);
-    const gameID = data.gameID;
+    const gameID = data.gameID.toLowerCase();
     try {
       // Find the game in the database
       const game = await Game.findOne({ gameID: gameID });
@@ -146,7 +146,7 @@ io.on("connection", (socket) => {
 
   // Listen for a player to call "makeMove" event
   socket.on('makeMove', async (data) => {
-    const gameID = data.gameID;
+    const gameID = data.gameID.toLowerCase();
     const username = data.username;
     const playerPiece = data.playerPiece;
     const cell = data.cell;
