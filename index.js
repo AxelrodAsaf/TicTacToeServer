@@ -45,7 +45,7 @@ io.on("connection", (socket) => {
     console.log(`A new game has been created with ID: ${data.gameID}`);
     const gameID = data.gameID;
     const username = data.username;
-    const player1Piece = gameID.match(/[XO].*/)[0].slice(0, 1);
+    const player1Piece = data.player1Piece
     const player2Piece = player1Piece === "X" ? "O" : "X";
 
     // Check if there is already a game with the given ID
