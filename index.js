@@ -206,9 +206,20 @@ io.on("connection", (socket) => {
 
   // Listen for "disconnect" event
   socket.on("disconnect", () => {
-    console.log("A user disconnected.");
+    console.log(`A user disconnected with socket id: ${socket.id}`);
   });
+});
 
+// Listen for room deletion and delete the game if there's a matching gameID.
+// There will be (self) rooms without a match.
+io.of("/").adapter.on("delete-room", async (room) => {
+  console.log(`Room ${room} was deleted`);
+
+  // Delete the game
+  const game = await Game.findOne({ gameID: room });
+  if (game) {
+    await game.deleteOne();
+  }
 });
 
 // Run the server on port with a console.log to tell the backend "developer"
