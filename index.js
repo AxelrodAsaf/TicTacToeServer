@@ -184,67 +184,11 @@ io.on("connection", (socket) => {
       // Update the gameboard with the player's move
       gameboard[row][col] = playerPiece;
 
-
-      // ========================================================GAME LOGIC=======================================================
-      // Check if the game has been won in a row
-      function checkRow(player) {
-        for (let i = 0; i < 3; i++) {
-          if (gameboard[i][0] === player && gameboard[i][1] === player && gameboard[i][2] === player) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      // Check if the game has been won in a column
-      function checkColumn(player) {
-        for (let i = 0; i < 3; i++) {
-          if (gameboard[0][i] === player && gameboard[1][i] === player && gameboard[2][i] === player) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      // Check if the game has been won diagonally
-      function checkDiagonal(player) {
-        if ((gameboard[0][0] === player && gameboard[1][1] === player && gameboard[2][2] === player) ||
-          (gameboard[0][2] === player && gameboard[1][1] === player && gameboard[2][0] === player)) {
-          return true;
-        }
-        return false;
-      }
-
-      // Check if the game has been won by either player
-      function checkWin(player) {
-        return checkRow(player) || checkColumn(player) || checkDiagonal(player);
-      }
-
-      // Check if the game has been won by either player
-      function checkGameStatus() {
-        if (checkWin(`X`)) {
-          console.log(`Player X wins!`);
-          io.in(gameID).emit(`gameOver`, { winner: `X` });
-        } else if (checkWin(`O`)) {
-          console.log(`Player O wins!`);
-          io.in(gameID).emit(`gameOver`, { winner: `O` });
-        } else if (gameboard.every(row => row.every(cell => cell !== `#`))) {
-          console.log(`Game is a tie!`);
-          io.in(gameID).emit(`gameOver`, { winner: `T` });
-        }
-      }
-// =========================================================================================================================
-
-      // Check if the game has been won
-      checkGameStatus();
+      // Check if the game has been won (Game logic is at the end of the file)
+      checkGameStatus(gameID, gameboard);
 
       // Change the player's turn to the other player
-      if (playerTurn === "X") {
-        game.turn = "O";
-      }
-      else {
-        game.turn = "X";
-      }
+      playerTurn === "X" ? game.turn = "O" : game.turn = "X";
 
       // Mark the gameboard property as modified
       game.markModified('gameboard');
@@ -272,6 +216,60 @@ server.listen(port, () => {
   console.log('\x1b[32m%s\x1b[0m', `+----------------------------+`);
   console.log(`Starting connection to port ${port}.`);
 });
+
+
+
+
+// ========================================================GAME LOGIC=======================================================
+// Check if the game has been won in a row
+function checkRow(gameboard, player) {
+  for (let i = 0; i < 3; i++) {
+    if (gameboard[i][0] === player && gameboard[i][1] === player && gameboard[i][2] === player) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Check if the game has been won in a column
+function checkColumn(gameboard, player) {
+  for (let i = 0; i < 3; i++) {
+    if (gameboard[0][i] === player && gameboard[1][i] === player && gameboard[2][i] === player) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Check if the game has been won diagonally
+function checkDiagonal(gameboard, player) {
+  if ((gameboard[0][0] === player && gameboard[1][1] === player && gameboard[2][2] === player) ||
+    (gameboard[0][2] === player && gameboard[1][1] === player && gameboard[2][0] === player)) {
+    return true;
+  }
+  return false;
+}
+
+// Check if the game has been won by either player
+function checkWin(gameboard, player) {
+  return checkRow(gameboard, player) || checkColumn(gameboard, player) || checkDiagonal(gameboard, player);
+}
+
+// Check if the game has been won by either player
+function checkGameStatus(gameID, gameboard) {
+  if (checkWin(gameboard, `X`)) {
+    console.log(`Player X wins!`);
+    io.in(gameID).emit(`gameOver`, { winner: `X` });
+  } else if (checkWin(gameboard, `O`)) {
+    console.log(`Player O wins!`);
+    io.in(gameID).emit(`gameOver`, { winner: `O` });
+  } else if (gameboard.every(row => row.every(cell => cell !== `#`))) {
+    console.log(`Game is a tie!`);
+    io.in(gameID).emit(`gameOver`, { winner: `T` });
+  }
+}
+// =========================================================================================================================
+
 
 // ++++++++++++++++++ Console.log() commands to change colors of the output: ++++++++++++++++++
 // console.log('\x1b[31m%s\x1b[0m', 'This text is red.');
