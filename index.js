@@ -204,9 +204,25 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Listen for "disconnect" event
-  socket.on("disconnect", () => {
-    console.log(`A user disconnected with socket id: ${socket.id}`);
+
+  // Listen for "removePlayer" event
+  socket.on("removePlayer", (data) => {
+    const gameID = data.gameID.toLowerCase();
+    const username = data.username;
+
+    // Remove the user from the socket room
+    socket.leave(gameID);
+    console.log(`Player ${username} left the room: ${gameID}`);
+
+    console.log(`A user disconnected from game: ${gameID}`);
+    // If the room exists, declare that a player has disconnected
+    if (io.sockets.adapter.rooms.has(gameID)) {
+      // the room exists, emit to all clients in the room
+      io.to(gameID).emit("playerDisconnected");
+    } else {
+      // the room does not exist, handle the error
+      console.error(`Room ${gameID} does not exist`);
+    }
   });
 });
 
